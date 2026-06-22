@@ -1,7 +1,12 @@
 
+------------------
+-- bug : hook new added
+bug : click on another converstaion, outline does not updated
 
-bug : hook new added
+------------------
+-- infra : convert to firefox plugin
+infra : convert to chrome plugin
 
+------------------
 feature : pin
-feature : convert to plugin
-    sign in firefox
+
