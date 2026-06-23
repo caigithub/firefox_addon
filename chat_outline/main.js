@@ -46,7 +46,7 @@
 		container.style.left = "300px";
 		container.style.zIndex = "9999";
 		// Size
-		container.style.maxHeight = "80vh";
+		container.style.maxHeight = "50vh";
 		container.style.padding = "30px";
 		// Color
 		container.style.backgroundColor = "white";
@@ -217,39 +217,6 @@
 		return headerItem;
 	}
 
-	function _createPinButton() {
-		const pinButton = document.createElement("button");
-		// Position
-		//pinButton.style.position = "absolute";
-		//pinButton.style.top = "5px";
-		//pinButton.style.right = "5px";
-		pinButton.style.marginLeft = "16px";
-		// Size
-		pinButton.style.width = "24px";
-		pinButton.style.height = "24px";
-		// Color
-		pinButton.style.backgroundColor = "#4CAF50";
-		pinButton.style.color = "white";
-		// Other
-		pinButton.style.border = "none";
-		pinButton.style.borderRadius = "50%";
-		pinButton.style.cursor = "pointer";
-		pinButton.style.fontSize = "14px";
-		pinButton.style.display = "flex";
-		pinButton.style.alignItems = "center";
-		pinButton.style.justifyContent = "center";
-		pinButton.textContent = "📌";
-
-		pinButton.addEventListener("mouseenter", () => {
-			pinButton.style.backgroundColor = "#45a049";
-		});
-		pinButton.addEventListener("mouseleave", () => {
-			pinButton.style.backgroundColor = "#4CAF50";
-		});
-
-		return pinButton;
-	}
-
 	//==================
 	// show outline dialog
 	//
@@ -293,60 +260,53 @@
 		showHeaderNavigation(getVisiableReplyList(page), tail);
 	}
 
-	function autoRefreshOutline(page) {
-		debug("autoRefreshOutline");
-		showOutline(page);
+	let nextRrefshedScheduled = false;
+	function requestRefreshOutline() {
+		nextRrefshedScheduled = true;
+		debug("scheduleRefreshOutline - requested");
+	}
 
-		if (page.getReplyStatus() === "replying") {
-			setTimeout(() => autoRefreshOutline(page), 500);
+	function scheduleRefreshOutline(page) {
+		if (nextRrefshedScheduled) {
+			showOutline(page);
+			nextRrefshedScheduled = false;
+			debug("scheduleRefreshOutline - ** refreshed **");
 		}
+
+		setTimeout(() => scheduleRefreshOutline(page), 500);
 	}
 
 	//==================
-	// detect reply status
+	// detect reply content change
 	//
 
-	let statusObserver = null;
-	function monitorReplyStatusChange(page, callback) {
-		if (statusObserver == null) {
-			let lastStatus = page.getReplyStatus();
-			statusObserver = new MutationObserver(() => {
-				const currentStatus = page.getReplyStatus();
-				if (currentStatus !== lastStatus) {
-					debug("status - changed", lastStatus, "→", currentStatus);
-					callback(lastStatus, currentStatus);
-					lastStatus = currentStatus;
-				}
-			});
-
-			debug("status - create observer");
-		} else {
-			statusObserver.disconnect();
-			debug("status - re-create observer");
-		}
-
-		const target = page.getReplyStatusDom();
-		if (!target) {
+	function monitorContentChange(parent, callback) {
+		if (parent == null) {
 			return null;
 		}
 
-		statusObserver.observe(target, {
+		const observer = new MutationObserver(() => {
+			debug("[content] changed");
+			callback();
+		});
+
+		observer.observe(parent, {
 			childList: true,
 			subtree: true,
 			attributes: true,
-			attributeFilter: ["class", "disabled", "aria-disabled", "aria-label"],
+			attributeOldValue: true,
 		});
 
 		window.addEventListener("beforeunload", () => {
-			statusObserver.disconnect();
+			observer.disconnect();
 			debug("status - clear observer");
 		});
 
-		return statusObserver;
+		return observer;
 	}
 
 	//==================
-	// detect visibility change
+	// detect reply visibility change
 	//
 
 	function getVisiableReplyList(page) {
@@ -355,10 +315,9 @@
 
 		page.getReplyDomList().forEach((reply_dom) => {
 			const reply_port = reply_dom.getBoundingClientRect();
-			const offset = 20;
 			if (
 				reply_port.top > viewport.bottom ||
-				reply_port.bottom < viewport.top + offset
+				reply_port.bottom < viewport.top
 			) {
 				return;
 			}
@@ -368,25 +327,26 @@
 		return replyList;
 	}
 
-	let visibilityObserver = null;
-	function monitorReplyVisibilityChange(page, callback) {
-		if (visibilityObserver == null) {
-			visibilityObserver = new IntersectionObserver(
-				() => {
-					debug("visibility - changed");
-					callback();
-				},
-				{
-					threshold: [0, 0.5, 1],
-				},
-			);
-			debug("visibility - create observer");
-		} else {
-			visibilityObserver.disconnect();
-			debug("visibility - re-create observer");
+	function monitorVisibilityChange(domList, callback) {
+		if (domList == null) {
+			return null;
 		}
 
-		page.getReplyDomList().forEach((reply) => {
+		if (domList.length === 0) {
+			return null;
+		}
+
+		const visibilityObserver = new IntersectionObserver(
+			() => {
+				debug("visibility - changed");
+				callback();
+			},
+			{
+				threshold: [0, 0.5, 1],
+			},
+		);
+
+		domList.forEach((reply) => {
 			visibilityObserver.observe(reply);
 		});
 
@@ -403,12 +363,12 @@
 	const pageList = [
 		{
 			name: "kimi",
+			getContentDom: () => document.querySelector(".chat-page"),
 			getReplyDomList: () =>
 				document.querySelectorAll(".chat-content-item .segment-assistant"),
 			getReplyViewPortDom: () => document.querySelector(".chat-detail-main"),
-			getReplyStatusDom: () => document.querySelector(".send-button-container"),
-			getReplyStatus: function () {
-				const buttonDom = this.getReplyStatusDom();
+			getReplyStatus: () => {
+				const buttonDom = document.querySelector(".send-button-container");
 				if (buttonDom === null) {
 					return "idle";
 				}
@@ -422,9 +382,9 @@
 		},
 		{
 			name: "openai",
+			getContentDom: () => document.querySelector(".\\@container\\/main"),
 			getReplyDomList: () => {
 				const replyList = [];
-
 				document
 					.querySelectorAll("div[data-message-author-role")
 					.forEach((article) => {
@@ -438,10 +398,10 @@
 				return replyList;
 			},
 			getReplyViewPortDom: () => document.querySelector(".\\@container\\/main"),
-			getReplyStatusDom: () =>
-				document.querySelector("#thread-bottom .composer-submit-button-color"),
-			getReplyStatus: function () {
-				const buttonDom = this.getReplyStatusDom();
+			getReplyStatus: () => {
+				const buttonDom = document.querySelector(
+					"#thread-bottom .composer-submit-button-color",
+				);
 				if (buttonDom === null) {
 					return "idle";
 				}
@@ -457,37 +417,38 @@
 
 	retry(() => {
 		return pageList.some((page) => {
-			if (page.getReplyDomList().length <= 0) {
-				return false;
-			}
-			debug(page.name, "- reply loaded");
-
-			monitorReplyVisibilityChange(page, () => {
-				showOutline(page);
-			});
-			debug(page.name, "- visibility monitoring");
-
-			return true;
-		});
-	});
-
-	retry(() => {
-		return pageList.some((page) => {
-			if (
-				monitorReplyStatusChange(page, (before, after) => {
-					if (before === "idle" && after === "replying") {
-						autoRefreshOutline(page);
-					} else {
-						showOutline(page);
-						monitorReplyVisibilityChange(page, () => {
-							showOutline(page);
-						});
+			let last_reply_count = 0;
+			let reply_observer = null;
+			const content_observer = monitorContentChange(
+				page.getContentDom(),
+				() => {
+					// monitor visilibility
+					const current_reply_list = page.getReplyDomList();
+					if (current_reply_list.length !== last_reply_count) {
+						if (reply_observer) {
+							reply_observer.disconnect();
+						}
+						reply_observer = monitorVisibilityChange(
+							page.getReplyDomList(),
+							() => {
+								requestRefreshOutline();
+							},
+						);
+						last_reply_count = current_reply_list.length;
 					}
-				})
-			) {
-				debug(page.name, "- reply status monitoring");
+
+					// update
+					requestRefreshOutline();
+				},
+			);
+
+			if (content_observer) {
+				debug(page.name, "- content monitoring");
+				scheduleRefreshOutline(page);
+				requestRefreshOutline();
 				return true;
 			}
+
 			return false;
 		});
 	});

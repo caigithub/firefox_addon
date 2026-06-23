@@ -1,12 +1,14 @@
 
 ------------------
 -- bug : hook new added
-bug : click on another converstaion, outline does not updated
+-- bug : click on another converstaion, outline does not updated
+bug : sometimes, the reply does not rigger the outline updated
 
 ------------------
 -- infra : convert to firefox plugin
 infra : convert to chrome plugin
+infra : auto pack each folder into a xpi
 
 ------------------
 feature : pin
-
+feature : highlight current headings
