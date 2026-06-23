@@ -456,7 +456,7 @@
 	];
 
 	retry(() => {
-		pageList.some((page) => {
+		return pageList.some((page) => {
 			if (page.getReplyDomList().length <= 0) {
 				return false;
 			}
