@@ -1,8 +1,7 @@
-rm %1.zip
-rm %1.xpi
+@echo off
+set "folderList=chat_outline"
+rem set "folderList=chat_outline chat_outline1 chat_outline2"
 
-cd %1
-zip -r ../%1.zip ./
-
-cd ..
-mv %1.zip %1.xpi
+for %%f in (%folderList%) do (
+    cd .\%%f && zip -r ..\%%f.xpi . && zip -r ..\%%f.zip . && cd ..
+)
