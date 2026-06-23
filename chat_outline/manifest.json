@@ -2,7 +2,7 @@
 	"description": "chat-outline adds a thin outline to the current ai chat message.",
 	"manifest_version": 3,
 	"name": "Chat Outline",
-	"version": "1.0",
+	"version": "1.1",
 	"homepage_url": "https://github.com/caigithub/firefox_addon/tree/master/chat_outline",
 	"author": "i_am_cai@163.com",
 	"icons": {
