@@ -2,8 +2,8 @@
 ------------------
 -- bug : hook new added
 -- bug : click on another converstaion, outline does not updated
+-- bug : new conversation does not have outline
 bug : max width, shall use size, not texting count
-bug : sometimes, the reply does not rigger the outline updated
 
 ------------------
 -- infra : convert to firefox plugin

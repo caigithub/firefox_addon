@@ -15,18 +15,29 @@
 	//==================
 	// utils
 	//
-	function retry(stop_func, attremps = 10, intervalMs = 1000) {
+	function retry(description, stop_func, attremps = 10, intervalMs = 1000) {
 		if (attremps <= 0) {
+			console.log("[retry]", description, "- stop, max attempts reached");
 			return;
 		}
 
 		//console.log("retry", attremps, stop_func);
 		if (stop_func() === true) {
+			console.log("[retry]", description, "- stop, pass");
 			return;
 		}
 
+		console.log(
+			"[retry]",
+			description,
+			"- re-scheduled after",
+			intervalMs,
+			"ms.",
+			attremps - 1,
+			" attempts left",
+		);
 		setTimeout(() => {
-			retry(stop_func, attremps - 1, intervalMs);
+			retry(description, stop_func, attremps - 1, intervalMs);
 		}, intervalMs);
 	}
 
@@ -222,13 +233,13 @@
 	//
 
 	let lastReplyOutlineContainer = null;
-	function showHeaderNavigation(replayDomList, tail) {
+	function showHeaderNavigation(replyDomList, tail) {
 		if (lastReplyOutlineContainer != null) {
 			document.body.removeChild(lastReplyOutlineContainer);
 		}
 
 		lastReplyOutlineContainer = createHeaderContainer();
-		replayDomList.forEach((reply_dom, index) => {
+		replyDomList.forEach((reply_dom, index) => {
 			const headerDomList = reply_dom.querySelectorAll(
 				"h1, h2, h3, h4, h5, h6",
 			);
@@ -241,14 +252,19 @@
 				lastReplyOutlineContainer.appendChild(createEmpty());
 			}
 
-			if (index < replayDomList.length - 1) {
+			if (index < replyDomList.length - 1) {
 				lastReplyOutlineContainer.appendChild(createSeperator());
 			}
 		});
 
+        if(replyDomList.length === 0) {
+            lastReplyOutlineContainer.appendChild(createEmpty());
+        }
+
 		if (tail) {
 			lastReplyOutlineContainer.appendChild(tail);
 		}
+
 		document.body.appendChild(lastReplyOutlineContainer);
 	}
 
@@ -260,20 +276,22 @@
 		showHeaderNavigation(getVisiableReplyList(page), tail);
 	}
 
+	//==================
+	// refresh
+	//
 	let nextRrefshedScheduled = false;
-	function requestRefreshOutline() {
-		nextRrefshedScheduled = true;
-		debug("scheduleRefreshOutline - requested");
-	}
-
-	function scheduleRefreshOutline(page) {
-		if (nextRrefshedScheduled) {
-			showOutline(page);
-			nextRrefshedScheduled = false;
-			debug("scheduleRefreshOutline - ** refreshed **");
+	function requestRefreshOutline(page) {
+		if (nextRrefshedScheduled === true) {
+			debug("requestRefreshOutline - skipped");
+			return;
 		}
 
-		setTimeout(() => scheduleRefreshOutline(page), 500);
+		setTimeout(() => {
+			showOutline(page);
+			nextRrefshedScheduled = false;
+			debug("requestRefreshOutline - **refreshed**");
+		}, 500);
+		nextRrefshedScheduled = true;
 	}
 
 	//==================
@@ -310,8 +328,13 @@
 	//
 
 	function getVisiableReplyList(page) {
-		const viewport = page.getReplyViewPortDom().getBoundingClientRect();
-		const replyList = [];
+        const replyList = [];
+
+        const viewport_dom = page.getReplyViewPortDom();
+        if (viewport_dom === null) {
+            return replyList;
+        }
+		const viewport = viewport_dom.getBoundingClientRect();
 
 		page.getReplyDomList().forEach((reply_dom) => {
 			const reply_port = reply_dom.getBoundingClientRect();
@@ -363,7 +386,7 @@
 	const pageList = [
 		{
 			name: "kimi",
-			getContentDom: () => document.querySelector(".chat-page"),
+			getContentDom: () => document.querySelector(".main"),
 			getReplyDomList: () =>
 				document.querySelectorAll(".chat-content-item .segment-assistant"),
 			getReplyViewPortDom: () => document.querySelector(".chat-detail-main"),
@@ -415,7 +438,7 @@
 		},
 	];
 
-	retry(() => {
+	retry("[chat outline] initialization", () => {
 		return pageList.some((page) => {
 			let last_reply_count = 0;
 			let reply_observer = null;
@@ -431,21 +454,20 @@
 						reply_observer = monitorVisibilityChange(
 							page.getReplyDomList(),
 							() => {
-								requestRefreshOutline();
+								requestRefreshOutline(page);
 							},
 						);
 						last_reply_count = current_reply_list.length;
 					}
 
 					// update
-					requestRefreshOutline();
+					requestRefreshOutline(page);
 				},
 			);
 
 			if (content_observer) {
 				debug(page.name, "- content monitoring");
-				scheduleRefreshOutline(page);
-				requestRefreshOutline();
+				requestRefreshOutline(page);
 				return true;
 			}
 
