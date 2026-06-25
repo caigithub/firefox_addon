@@ -56,7 +56,7 @@
 	}
 
 	function makeColor(r, g, b, o) {
-		return `rgba(` + r + `, ` + g + `, ` + b + `, ` + o + `)`;
+		return `rgba(${r}, ${g}, ${b}, ${o})`;
 	}
 
 	function uxBorderFlash(element, duration = 1000, r, g, b) {
@@ -169,9 +169,9 @@
 			articleQueryFunc: () =>
 				document.querySelectorAll("div[data-message-author-role]"),
 			isGptArticleFunc: (article) =>
-				article.getAttribute("data-message-author-role") == "assistant",
+				article.getAttribute("data-message-author-role") === "assistant",
 			isUserArticleFunc: (article) =>
-				article.getAttribute("data-message-author-role") == "user",
+				article.getAttribute("data-message-author-role") === "user",
 			scrollFunc: (article) => {
 				article.style.scrollMarginTop = "0px";
 				article.scrollIntoView();
