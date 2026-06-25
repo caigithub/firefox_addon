@@ -1,9 +1,9 @@
 {
-	"description": "chat-outline adds a thin outline to the current ai chat message.",
+	"description": "Chat Jump helps you jump to pre/next message in the chat.",
 	"manifest_version": 3,
-	"name": "Chat Outline",
-	"version": "1.3",
-	"homepage_url": "https://github.com/caigithub/firefox_addon/tree/master/chat_outline",
+	"name": "Chat Jump",
+	"version": "1.0",
+	"homepage_url": "https://github.com/caigithub/firefox_addon/tree/master/chat_jump",
 	"author": "i_am_cai@163.com",
 	"icons": {
 		"48": "icons/border-48.png"
@@ -11,7 +11,7 @@
 
 	"browser_specific_settings": {
 		"gecko": {
-			"id": "chat-outline@i_am_cai",
+			"id": "chat-jump@i_am_cai",
 			"data_collection_permissions": {
 				"required": ["none"]
 			}

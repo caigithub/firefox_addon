@@ -1,8 +1,12 @@
 
 ------------------
-bug : chatgpt first item jump
+-- bug : chatgpt first item jump
+-- bug : update readme
+bug : update icon/screenshot
 
 ------------------
 
 ------------------
+feature : if no item to jump, also highlight current
 feature : use icon image for jumpUp/jump/Down
+feature : jump icon position is hard code, make it relative ?

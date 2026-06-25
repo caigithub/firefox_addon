@@ -1,5 +1,5 @@
 @echo off
-set "folderList=chat_outline"
+set "folderList=chat_outline;chat_jump"
 rem set "folderList=chat_outline chat_outline1 chat_outline2"
 
 for %%f in (%folderList%) do (

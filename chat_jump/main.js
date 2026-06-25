@@ -13,6 +13,26 @@
 
 (() => {
 	//==================
+	// debug
+	//
+	function debug(action, ...articles) {
+		if (articles) {
+			for (const ar of articles) {
+				console.log(
+					"[chatgpt jump]",
+					"[",
+					action,
+					"]",
+					ar.getBoundingClientRect().top,
+					ar.textContent.substring(0, 50),
+				);
+			}
+			return;
+		}
+		console.log("[chatgpt jump]", action);
+	}
+
+	//==================
 	// ux
 	//
 	function createButton(ext_css, callback) {
@@ -82,29 +102,13 @@
 	}
 
 	//==================
-	// debug
-	//
-	function debug(action, ...articles) {
-		if (articles) {
-			for (const ar of articles) {
-				console.log(
-					"[",
-					action,
-					"]",
-					ar.getBoundingClientRect().top,
-					ar.textContent.substring(0, 50),
-				);
-			}
-			return;
-		}
-		console.log(action);
-	}
-
-	//==================
 	// jump before
 	//
-	function isHiddenBefore(article) {
-		return article.getBoundingClientRect().top < 0;
+	function isHiddenBefore(article, viewPortDom) {
+		return (
+			article.getBoundingClientRect().top <
+			viewPortDom.getBoundingClientRect().top
+		);
 	}
 
 	function jumpUp(config) {
@@ -117,7 +121,7 @@
 				continue;
 			}
 
-			if (isHiddenBefore(article)) {
+			if (isHiddenBefore(article, config.articleViewPortQueryFunc())) {
 				debug("jumpUp--->", article);
 				last_hidden_artile = article;
 			}
@@ -136,8 +140,11 @@
 	//==================
 	// jump after
 	//
-	function isHiddenAfter(article) {
-		return article.getBoundingClientRect().top > 100;
+	function isHiddenAfter(article, viewPortDom) {
+		return (
+			article.getBoundingClientRect().top >
+			viewPortDom.getBoundingClientRect().top + 100
+		);
 	}
 
 	function jumpDown(config) {
@@ -148,7 +155,7 @@
 				continue;
 			}
 
-			if (isHiddenAfter(article)) {
+			if (isHiddenAfter(article, config.articleViewPortQueryFunc())) {
 				debug("jumpDown--->", article);
 				debug("jumpDown===>", article);
 				config.scrollFunc(article);
@@ -161,45 +168,8 @@
 	}
 
 	//==================
-	// jump main
+	// jump
 	//
-	const configList = [
-		{
-			name: "chatgpt",
-			articleQueryFunc: () =>
-				document.querySelectorAll("div[data-message-author-role]"),
-			isGptArticleFunc: (article) =>
-				article.getAttribute("data-message-author-role") === "assistant",
-			isUserArticleFunc: (article) =>
-				article.getAttribute("data-message-author-role") === "user",
-			scrollFunc: (article) => {
-				article.style.scrollMarginTop = "0px";
-				article.scrollIntoView();
-			},
-		},
-		{
-			name: "kimi",
-			articleQueryFunc: () => document.querySelectorAll(".chat-content-item"),
-			isGptArticleFunc: (article) =>
-				article.querySelector(".segment-assistant"),
-			isUserArticleFunc: (article) => article.querySelector(".segment-user"),
-			scrollFunc: (article) => {
-				article.scrollIntoView();
-			},
-		},
-		{
-			name: "deep seek",
-			articleQueryFunc: () => document.querySelectorAll("div.ds-message"),
-			isGptArticleFunc: (article) =>
-				!article.parentElement.getAttribute("data-um-id"),
-			isUserArticleFunc: (article) =>
-				article.parentElement.getAttribute("data-um-id"),
-			scrollFunc: (article) => {
-				article.scrollIntoView();
-			},
-		},
-	];
-
 	function jump(configList, jumpFunc) {
 		for (const config of configList) {
 			const jumpToItem = jumpFunc(config);
@@ -218,6 +188,38 @@
 
 		uxShake(jumpButton, 300);
 	}
+
+	//==================
+	// jump main
+	//
+	const configList = [
+		{
+			name: "kimi",
+			articleQueryFunc: () => document.querySelectorAll(".chat-content-item"),
+			articleViewPortQueryFunc: () =>
+				document.querySelector(".chat-detail-main"),
+			isGptArticleFunc: (article) =>
+				article.querySelector(".segment-assistant"),
+			isUserArticleFunc: (article) => article.querySelector(".segment-user"),
+			scrollFunc: (article) => {
+				article.scrollIntoView();
+			},
+		},
+		{
+			name: "chatgpt",
+			articleQueryFunc: () => document.querySelectorAll("section"),
+			articleViewPortQueryFunc: () =>
+				document.querySelector(".\\@container\\/main"),
+			isGptArticleFunc: (article) =>
+				article.getAttribute("data-turn") === "assistant",
+			isUserArticleFunc: (article) =>
+				article.getAttribute("data-turn") === "user",
+			scrollFunc: (article) => {
+				article.style.scrollMarginTop = "0px";
+				article.scrollIntoView();
+			},
+		},
+	];
 
 	document.querySelectorAll(":root > body").forEach((body) => {
 		body.appendChild(

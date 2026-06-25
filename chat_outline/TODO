@@ -12,4 +12,5 @@ bug : max width, shall use size, not texting count
 
 ------------------
 feature : pin
-feature : highlight current headings
+feature : remember drag drop position
+feature : highlight current visible headings

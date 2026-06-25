@@ -1,5 +1,5 @@
-# chat-outline
-chat-outline adds a thin outline to the current ai chat message.
+# Chat Outline
+Chat Outline adds a thin outline to the current ai chat message.
 
 ### Support List:
 - openai
