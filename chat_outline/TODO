@@ -7,8 +7,8 @@ bug : max width, shall use size, not texting count
 
 ------------------
 -- infra : convert to firefox plugin
-infra : convert to chrome plugin
-infra : auto pack each folder into a xpi
+-- infra : convert to chrome plugin
+-- infra : auto pack each folder into a xpi
 
 ------------------
 feature : pin

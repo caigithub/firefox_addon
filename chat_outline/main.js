@@ -257,9 +257,9 @@
 			}
 		});
 
-        if(replyDomList.length === 0) {
-            lastReplyOutlineContainer.appendChild(createEmpty());
-        }
+		if (replyDomList.length === 0) {
+			lastReplyOutlineContainer.appendChild(createEmpty());
+		}
 
 		if (tail) {
 			lastReplyOutlineContainer.appendChild(tail);
@@ -328,12 +328,12 @@
 	//
 
 	function getVisiableReplyList(page) {
-        const replyList = [];
+		const replyList = [];
 
-        const viewport_dom = page.getReplyViewPortDom();
-        if (viewport_dom === null) {
-            return replyList;
-        }
+		const viewport_dom = page.getReplyViewPortDom();
+		if (viewport_dom === null) {
+			return replyList;
+		}
 		const viewport = viewport_dom.getBoundingClientRect();
 
 		page.getReplyDomList().forEach((reply_dom) => {
