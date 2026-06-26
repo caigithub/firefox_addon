@@ -11,6 +11,10 @@ bug : max width, shall use size, not texting count
 -- infra : auto pack each folder into a xpi
 
 ------------------
-feature : pin
 feature : remember drag drop position
+feature : remember drag drop sizing
+feature : auto width, based on the current view port sizing
+feature : auto position, based on the current view port sizing
+
+feature : pin
 feature : highlight current visible headings

@@ -1,0 +1,27 @@
+{
+	"description": "Adds expand/collapse controls for files in GitHub pull request and commit pages.",
+	"manifest_version": 3,
+	"name": "Git PR Collapse Files",
+	"version": "1.0",
+	"homepage_url": "https://github.com/caigithub/firefox_addon/tree/master/git-pr-collapse-files",
+	"author": "i_am_cai@163.com",
+	"browser_specific_settings": {
+		"gecko": {
+			"id": "git-pr-collapse-files@i_am_cai",
+			"data_collection_permissions": {
+				"required": ["none"]
+			}
+		}
+	},
+	"content_scripts": [
+		{
+			"matches": [
+				"*://github.com/*/pull/*/files",
+				"*://github.com/*/pull/*/files?*",
+				"*://github.com/*/pull/*/commits/*",
+				"*://github.com/*/commit/*"
+			],
+			"js": ["main.js"]
+		}
+	]
+}
