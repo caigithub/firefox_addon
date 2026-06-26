@@ -46,38 +46,50 @@
 	}
 
 	//==================
-	// ui component
+	// common ui component
 	//
 
-	function createHeaderContainer() {
-		const container = document.createElement("div");
-		// Position
-		container.style.position = "fixed";
-		container.style.top = "30%";
-		container.style.left = "300px";
-		container.style.zIndex = "9999";
-		// Size
-		container.style.maxHeight = "50vh";
-		container.style.padding = "30px";
-		// Color
-		container.style.backgroundColor = "white";
-		// Other
-		container.style.border = "1px solid #ccc";
-		container.style.overflowY = "auto";
-		container.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
-		container.style.cursor = "move";
+	function applyPosition(container, x, y) {
+		container.style.transform = `translate(${x}px, ${y}px)`;
+	}
 
+	function getStoredPosition() {
+		try {
+			const stored = localStorage.getItem("chat-outline-position");
+			if (stored == null) {
+				return null;
+			}
+
+			const parsed = JSON.parse(stored);
+			return {
+				x: Number(parsed.x) || 0,
+				y: Number(parsed.y) || 0,
+			};
+		} catch (error) {
+			debug("failed to read stored position", error);
+			return null;
+		}
+	}
+
+	function savePosition(x, y) {
+		try {
+			localStorage.setItem("chat-outline-position", JSON.stringify({ x, y }));
+		} catch (error) {
+			debug("failed to save position", error);
+		}
+	}
+
+	function enableDragDrop(container) {
+		const storedPosition = getStoredPosition();
 		let isDragging = false;
-		let currentX;
-		let currentY;
+		let currentX = storedPosition?.x || 0;
+		let currentY = storedPosition?.y || 0;
 		let initialX;
 		let initialY;
-		let xOffset = 0;
-		let yOffset = 0;
+		let xOffset = currentX;
+		let yOffset = currentY;
 
-		container.addEventListener("mousedown", dragStart);
-		document.addEventListener("mousemove", drag);
-		document.addEventListener("mouseup", dragEnd);
+		applyPosition(container, currentX, currentY);
 
 		function dragStart(e) {
 			if (e.target.tagName === "BUTTON") return;
@@ -99,22 +111,66 @@
 				xOffset = currentX;
 				yOffset = currentY;
 
-				container.style.transform = `translate(${currentX}px, ${currentY}px)`;
+				applyPosition(container, currentX, currentY);
 			}
 		}
 
 		function dragEnd() {
 			initialX = currentX;
 			initialY = currentY;
+			xOffset = currentX;
+			yOffset = currentY;
+			savePosition(xOffset, yOffset);
 			isDragging = false;
 		}
 
-		const closeButton = createCloseButton(container);
-		container.appendChild(closeButton);
-		return container;
+		container.addEventListener("mousedown", dragStart);
+		document.addEventListener("mousemove", drag);
+		document.addEventListener("mouseup", dragEnd);
 	}
 
-	function createCloseButton(container) {
+	//==================
+	// outline ui component
+	//
+
+	function createOutlineUI() {
+		const container = document.createElement("div");
+		const contentContainer = document.createElement("div");
+		contentContainer.dataset.role = "content";
+		// Position
+		container.style.position = "fixed";
+		container.style.top = "30%";
+		container.style.left = "300px";
+		container.style.zIndex = "9999";
+		// Size
+		container.style.maxHeight = "50vh";
+		container.style.padding = "30px";
+		// Color
+		container.style.backgroundColor = "white";
+		// Other
+		container.style.border = "1px solid #ccc";
+		container.style.overflowY = "auto";
+		container.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
+		container.style.cursor = "move";
+		contentContainer.style.position = "relative";
+		contentContainer.style.zIndex = "1";
+
+		enableDragDrop(container);
+
+		const closeButton = createCloseButton(container, () => {
+			container.remove();
+		});
+		closeButton.style.zIndex = "2";
+		container.appendChild(closeButton);
+		container.appendChild(contentContainer);
+		return {
+			container,
+			closeButton,
+			contentContainer,
+		};
+	}
+
+	function createCloseButton(_container, onClick) {
 		const closeButton = document.createElement("button");
 		closeButton.textContent = "×";
 		// Position
@@ -130,9 +186,8 @@
 		// Other
 		closeButton.style.border = "none";
 		closeButton.style.cursor = "pointer";
-		closeButton.addEventListener("click", () => {
-			container.remove();
-		});
+		closeButton.style.zIndex = "2";
+		closeButton.addEventListener("click", onClick);
 		closeButton.addEventListener("mouseenter", () => {
 			closeButton.style.color = "#000";
 		});
@@ -232,13 +287,15 @@
 	// show outline dialog
 	//
 
-	let lastReplyOutlineContainer = null;
+	let outlineUI = null;
 	function showHeaderNavigation(replyDomList, tail) {
-		if (lastReplyOutlineContainer != null) {
-			document.body.removeChild(lastReplyOutlineContainer);
+		if (outlineUI == null) {
+			outlineUI = createOutlineUI();
+			document.body.appendChild(outlineUI.container);
+		} else {
+			outlineUI.contentContainer.replaceChildren();
 		}
 
-		lastReplyOutlineContainer = createHeaderContainer();
 		replyDomList.forEach((reply_dom, index) => {
 			const headerDomList = reply_dom.querySelectorAll(
 				"h1, h2, h3, h4, h5, h6",
@@ -246,26 +303,24 @@
 
 			if (headerDomList.length > 0) {
 				headerDomList.forEach((header) => {
-					lastReplyOutlineContainer.appendChild(createHeaderItem(header));
+					outlineUI.contentContainer.appendChild(createHeaderItem(header));
 				});
 			} else {
-				lastReplyOutlineContainer.appendChild(createEmpty());
+				outlineUI.contentContainer.appendChild(createEmpty());
 			}
 
 			if (index < replyDomList.length - 1) {
-				lastReplyOutlineContainer.appendChild(createSeperator());
+				outlineUI.contentContainer.appendChild(createSeperator());
 			}
 		});
 
 		if (replyDomList.length === 0) {
-			lastReplyOutlineContainer.appendChild(createEmpty());
+			outlineUI.contentContainer.appendChild(createEmpty());
 		}
 
 		if (tail) {
-			lastReplyOutlineContainer.appendChild(tail);
+			outlineUI.contentContainer.appendChild(tail);
 		}
-
-		document.body.appendChild(lastReplyOutlineContainer);
 	}
 
 	function showOutline(page) {
