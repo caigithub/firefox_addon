@@ -129,10 +129,6 @@
 		document.addEventListener("mouseup", dragEnd);
 	}
 
-	//==================
-	// outline ui component
-	//
-
 	function createOutlineUI() {
 		const container = document.createElement("div");
 		const contentContainer = document.createElement("div");
@@ -154,48 +150,86 @@
 		container.style.cursor = "move";
 		contentContainer.style.position = "relative";
 		contentContainer.style.zIndex = "1";
-
-		enableDragDrop(container);
-
-		const closeButton = createCloseButton(container, () => {
-			container.remove();
+		// child
+		const closeButton = createButton(" + ", "Show outline", null, (event) => {
+			event.stopPropagation();
+			if (isCollapsed) {
+				showOutline();
+			} else {
+				hideOutline();
+			}
 		});
-		closeButton.style.zIndex = "2";
 		container.appendChild(closeButton);
 		container.appendChild(contentContainer);
+		// status
+		let isCollapsed = false;
+		function showOutline() {
+			isCollapsed = false;
+			closeButton.textContent = " - ";
+			closeButton.title = "Click toHide outline";
+			contentContainer.style.display = "block";
+		}
+		function hideOutline() {
+			isCollapsed = true;
+			closeButton.textContent = " + ";
+			closeButton.title = "Click to Show outline";
+			contentContainer.style.display = "none";
+		}
+		enableDragDrop(container);
+		showOutline();
+
+		//
 		return {
 			container,
 			closeButton,
 			contentContainer,
+			get isCollapsed() {
+				return isCollapsed;
+			},
 		};
 	}
 
-	function createCloseButton(_container, onClick) {
+	function createButton(text, hint, style, onClick) {
 		const closeButton = document.createElement("button");
-		closeButton.textContent = "×";
+		closeButton.textContent = text;
+		closeButton.title = hint;
+
 		// Position
 		closeButton.style.position = "absolute";
 		closeButton.style.top = "5px";
-		closeButton.style.right = "5px";
-		// Size
-		closeButton.style.fontSize = "20px";
-		closeButton.style.lineHeight = "1";
-		// Color
-		closeButton.style.color = "#666";
-		closeButton.style.background = "transparent";
-		// Other
-		closeButton.style.border = "none";
-		closeButton.style.cursor = "pointer";
+		closeButton.style.left = "5px";
 		closeButton.style.zIndex = "2";
+		// Size
+		closeButton.style.fontSize = "13px";
+		closeButton.style.lineHeight = "1";
+		closeButton.style.padding = "4px 7px";
+		// Color
+		closeButton.style.color = "#4b5563";
+		closeButton.style.background = "#f9fafb";
+		// Other
+		closeButton.style.border = "1px solid #d1d5db";
+		closeButton.style.cursor = "pointer";
+		closeButton.style.boxShadow = "0 1px 3px rgba(0,0,0,0.08)";
+		//
+		if (style) {
+			Object.assign(closeButton.style, style);
+		}
+		// events
 		closeButton.addEventListener("click", onClick);
 		closeButton.addEventListener("mouseenter", () => {
-			closeButton.style.color = "#000";
+			closeButton.style.background = "#f3f4f6";
+			closeButton.style.color = "#111827";
 		});
 		closeButton.addEventListener("mouseleave", () => {
-			closeButton.style.color = "#666";
+			closeButton.style.background = "#f9fafb";
+			closeButton.style.color = "#4b5563";
 		});
 		return closeButton;
 	}
+
+	//==================
+	// outline ui component
+	//
 
 	function createSeperator() {
 		const headerItem = document.createElement("div");
