@@ -23,7 +23,7 @@
 
 		//console.log("retry", attremps, stop_func);
 		if (stop_func() === true) {
-			console.log("[retry]", description, "- stop, pass");
+			console.log("[retry]", description, "- pass");
 			return;
 		}
 
@@ -281,18 +281,29 @@
 		return headerItem;
 	}
 
-	function createHeaderItem(header) {
+	const headerItemStyles = {
+		normal: {
+			color: "#374151",
+			backgroundColor: "transparent",
+		},
+		highlight: {
+			color: "#111827",
+			backgroundColor: "#f0f0f0",
+		},
+	};
+
+	function createHeaderItem(header, style = headerItemStyles.normal) {
 		const level = parseInt(header.tagName.substring(1), 10);
 		const indent = " ".repeat((level - 1) * 4);
 
 		const headerItem = document.createElement("div");
 
-		let header_content = header.textContent;
-		const header_content_max = 40;
-		if (header.textContent.length > header_content_max) {
-			header_content = `${header.textContent.slice(0, header_content_max)}...`;
+		let headerContent = header.textContent;
+		const headerContentMax = 40;
+		if (header.textContent.length > headerContentMax) {
+			headerContent = `${header.textContent.slice(0, headerContentMax)}...`;
 		}
-		headerItem.textContent = indent + header_content;
+		headerItem.textContent = indent + headerContent;
 
 		// Position
 		// Size
@@ -303,15 +314,21 @@
 		headerItem.style.whiteSpace = "pre";
 		headerItem.style.fontFamily = "monospace";
 
+		const resolvedStyle = {
+			...headerItemStyles.normal,
+			...(style || {}),
+		};
+		Object.assign(headerItem.style, resolvedStyle);
+
 		headerItem.addEventListener("click", () => {
 			header.scrollIntoView({ behavior: "smooth", block: "start" });
 		});
 
 		headerItem.addEventListener("mouseenter", () => {
-			headerItem.style.backgroundColor = "#f0f0f0";
+			Object.assign(headerItem.style, headerItemStyles.highlight);
 		});
 		headerItem.addEventListener("mouseleave", () => {
-			headerItem.style.backgroundColor = "transparent";
+			Object.assign(headerItem.style, resolvedStyle);
 		});
 
 		return headerItem;
@@ -321,8 +338,28 @@
 	// show outline dialog
 	//
 
+	function showReplyOutline(reply_dom, viewPortDom) {
+		const headerDomList = reply_dom.querySelectorAll("h1, h2, h3, h4, h5, h6");
+		if (headerDomList.length > 0) {
+			headerDomList.forEach((header) => {
+				if (isElmentInViewport(header, viewPortDom)) {
+					outlineUI.contentContainer.appendChild(
+						createHeaderItem(header, headerItemStyles.highlight),
+					);
+				} else {
+					outlineUI.contentContainer.appendChild(
+						createHeaderItem(header, headerItemStyles.normal),
+					);
+				}
+			});
+		} else {
+			outlineUI.contentContainer.appendChild(createEmpty());
+		}
+	}
+
 	let outlineUI = null;
-	function showHeaderNavigation(replyDomList, tail) {
+
+	function showOutline(page) {
 		if (outlineUI == null) {
 			outlineUI = createOutlineUI();
 			document.body.appendChild(outlineUI.container);
@@ -330,39 +367,24 @@
 			outlineUI.contentContainer.replaceChildren();
 		}
 
-		replyDomList.forEach((reply_dom, index) => {
-			const headerDomList = reply_dom.querySelectorAll(
-				"h1, h2, h3, h4, h5, h6",
-			);
-
-			if (headerDomList.length > 0) {
-				headerDomList.forEach((header) => {
-					outlineUI.contentContainer.appendChild(createHeaderItem(header));
-				});
-			} else {
-				outlineUI.contentContainer.appendChild(createEmpty());
-			}
-
-			if (index < replyDomList.length - 1) {
-				outlineUI.contentContainer.appendChild(createSeperator());
-			}
-		});
+		const replyDomList = page.getReplyDomList();
+		const viewPortDom = page.getReplyViewPortDom();
+		getVisibleList(replyDomList, viewPortDom).forEach(
+			(reply_dom, reply_index) => {
+				showReplyOutline(reply_dom, viewPortDom, page);
+				if (reply_index < replyDomList.length - 1) {
+					outlineUI.contentContainer.appendChild(createSeperator());
+				}
+			},
+		);
 
 		if (replyDomList.length === 0) {
 			outlineUI.contentContainer.appendChild(createEmpty());
 		}
 
-		if (tail) {
-			outlineUI.contentContainer.appendChild(tail);
-		}
-	}
-
-	function showOutline(page) {
-		let tail = null;
 		if (page.getReplyStatus() === "replying") {
-			tail = createContinue();
+			outlineUI.contentContainer.appendChild(createContinue());
 		}
-		showHeaderNavigation(getVisiableReplyList(page), tail);
 	}
 
 	//==================
@@ -371,7 +393,7 @@
 	let nextRrefshedScheduled = false;
 	function requestRefreshOutline(page) {
 		if (nextRrefshedScheduled === true) {
-			debug("requestRefreshOutline - skipped");
+			debug("requestRefreshOutline - scheduled");
 			return;
 		}
 
@@ -416,21 +438,26 @@
 	// detect reply visibility change
 	//
 
-	function getVisiableReplyList(page) {
-		const replyList = [];
+	function isElmentInViewport(element, viewPortDom) {
+		const rect = element.getBoundingClientRect();
+		const viewPortRect = viewPortDom.getBoundingClientRect();
+		return rect.top >= viewPortRect.top && rect.bottom <= viewPortRect.bottom;
+	}
 
-		const viewport_dom = page.getReplyViewPortDom();
+	function isElmentOutOfViewport(element, viewPortDom) {
+		const rect = element.getBoundingClientRect();
+		const viewPortRect = viewPortDom.getBoundingClientRect();
+		return rect.bottom < viewPortRect.top || rect.top > viewPortRect.bottom;
+	}
+
+	function getVisibleList(replyDom_list, viewport_dom) {
+		const replyList = [];
 		if (viewport_dom === null) {
 			return replyList;
 		}
-		const viewport = viewport_dom.getBoundingClientRect();
 
-		page.getReplyDomList().forEach((reply_dom) => {
-			const reply_port = reply_dom.getBoundingClientRect();
-			if (
-				reply_port.top > viewport.bottom ||
-				reply_port.bottom < viewport.top
-			) {
+		replyDom_list.forEach((reply_dom) => {
+			if (isElmentOutOfViewport(reply_dom, viewport_dom)) {
 				return;
 			}
 			replyList.push(reply_dom);
@@ -439,39 +466,52 @@
 		return replyList;
 	}
 
-	function monitorVisibilityChange(domList, callback) {
-		if (domList == null) {
-			return null;
-		}
+	function visibilityObserver(name) {
+		return {
+			name: name,
+			observedItems: [],
+			observer: null,
+			callback: null,
+			observe: function (...items) {
+				if (this.observer == null) {
+					this.observer = new IntersectionObserver(
+						(changed_item_list) => {
+							debug(
+								this.name,
+								"visibility - ",
+								changed_item_list.length,
+								"changed",
+							);
+							this.callback();
+						},
+						{
+							threshold: [0, 0.5, 1],
+						},
+					);
+				}
 
-		if (domList.length === 0) {
-			return null;
-		}
-
-		const visibilityObserver = new IntersectionObserver(
-			() => {
-				debug("visibility - changed");
-				callback();
+				items.forEach((item) => {
+					debug(
+						this.name,
+						"visibility - monitoring",
+						item.textContent.substring(0, 30),
+					);
+					this.observer.observe(item);
+					this.observedItems.push(item);
+				});
 			},
-			{
-				threshold: [0, 0.5, 1],
+			disconnet: function () {
+				if (this.observer) {
+					this.observer.disconnect();
+				}
+				this.observedItems = [];
 			},
-		);
-
-		domList.forEach((reply) => {
-			visibilityObserver.observe(reply);
-		});
-
-		window.addEventListener("beforeunload", () => {
-			visibilityObserver.disconnect();
-		});
-
-		return visibilityObserver;
+		};
 	}
 
 	//==================
-	// main
-
+	// page config
+	//
 	const pageList = [
 		{
 			name: "kimi",
@@ -527,29 +567,28 @@
 		},
 	];
 
+	//==================
+	// initialize
+	//
 	retry("[chat outline] initialization", () => {
 		return pageList.some((page) => {
-			let last_reply_count = 0;
-			let reply_observer = null;
+			const observer = visibilityObserver("header");
+			observer.callback = () => {
+				requestRefreshOutline(page);
+			};
+
 			const content_observer = monitorContentChange(
 				page.getContentDom(),
 				() => {
-					// monitor visilibility
-					const current_reply_list = page.getReplyDomList();
-					if (current_reply_list.length !== last_reply_count) {
-						if (reply_observer) {
-							reply_observer.disconnect();
-						}
-						reply_observer = monitorVisibilityChange(
-							page.getReplyDomList(),
-							() => {
-								requestRefreshOutline(page);
-							},
-						);
-						last_reply_count = current_reply_list.length;
+					const current_item_list = page
+						.getContentDom()
+						.querySelectorAll("h1, h2, h3, h4, h5, h6");
+
+					if (observer.observedItems.length !== current_item_list.length) {
+                        observer.disconnet();
+						observer.observe(...current_item_list);
 					}
 
-					// update
 					requestRefreshOutline(page);
 				},
 			);

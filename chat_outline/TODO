@@ -8,16 +8,16 @@
 -- feature : remember drag drop position
 -- feature : auto position, based on the current view port sizing
 
-bug : max width, shall use size, not texting count
+-- bug : max width, shall use size, not texting count
     feature : remember drag drop sizing
     feature : auto width, based on the current view port sizing
 
 feature : pin
-feature : highlight current visible headings
+-- feature : highlight current visible headings
 
 ------------------
 -- infra : convert to firefox plugin
 -- infra : convert to chrome plugin
 -- infra : auto pack each folder into a xpi
--- infra : "design answer format instruction" does not work. expect explain - confirm 
-infra : biome does not fix the code
+-- infra : "design answer format instruction" does not work. expect explain - confirm
+-- infra : biome does not fix the code
