@@ -15,13 +15,13 @@
 	//==================
 	// utils
 	//
-	function retry(description, stop_func, attremps = 10, intervalMs = 1000) {
-		if (attremps <= 0) {
+	function retry(description, stop_func, attemps = 10, intervalMs = 1000) {
+		if (attemps <= 0) {
 			console.log("[retry]", description, "- stop, max attempts reached");
 			return;
 		}
 
-		//console.log("retry", attremps, stop_func);
+		//console.log("retry", attemps, stop_func);
 		if (stop_func() === true) {
 			console.log("[retry]", description, "- pass");
 			return;
@@ -33,11 +33,11 @@
 			"- re-scheduled after",
 			intervalMs,
 			"ms.",
-			attremps - 1,
+			attemps - 1,
 			" attempts left",
 		);
 		setTimeout(() => {
-			retry(description, stop_func, attremps - 1, intervalMs);
+			retry(description, stop_func, attemps - 1, intervalMs);
 		}, intervalMs);
 	}
 
@@ -166,7 +166,7 @@
 		function showOutline() {
 			isCollapsed = false;
 			closeButton.textContent = " - ";
-			closeButton.title = "Click toHide outline";
+			closeButton.title = "Click to Hide outline";
 			contentContainer.style.display = "block";
 		}
 		function hideOutline() {
@@ -231,7 +231,7 @@
 	// outline ui component
 	//
 
-	function createSeperator() {
+	function createSeparator() {
 		const headerItem = document.createElement("div");
 		headerItem.textContent = "------------------";
 		headerItem.style.color = "lightgray";
@@ -342,7 +342,7 @@
 		const headerDomList = reply_dom.querySelectorAll("h1, h2, h3, h4, h5, h6");
 		if (headerDomList.length > 0) {
 			headerDomList.forEach((header) => {
-				if (isElmentInViewport(header, viewPortDom)) {
+				if (isElementInViewport(header, viewPortDom)) {
 					outlineUI.contentContainer.appendChild(
 						createHeaderItem(header, headerItemStyles.highlight),
 					);
@@ -367,16 +367,14 @@
 			outlineUI.contentContainer.replaceChildren();
 		}
 
-		const replyDomList = page.getReplyDomList();
 		const viewPortDom = page.getReplyViewPortDom();
-		getVisibleList(replyDomList, viewPortDom).forEach(
-			(reply_dom, reply_index) => {
-				showReplyOutline(reply_dom, viewPortDom, page);
-				if (reply_index < replyDomList.length - 1) {
-					outlineUI.contentContainer.appendChild(createSeperator());
-				}
-			},
-		);
+		const replyDomList = getVisibleList(page.getReplyDomList(), viewPortDom);
+		replyDomList.forEach((reply_dom, reply_index) => {
+			showReplyOutline(reply_dom, viewPortDom);
+			if (reply_index < replyDomList.length - 1) {
+				outlineUI.contentContainer.appendChild(createSeparator());
+			}
+		});
 
 		if (replyDomList.length === 0) {
 			outlineUI.contentContainer.appendChild(createEmpty());
@@ -390,19 +388,19 @@
 	//==================
 	// refresh
 	//
-	let nextRrefshedScheduled = false;
+	let nextRefreshedScheduled = false;
 	function requestRefreshOutline(page) {
-		if (nextRrefshedScheduled === true) {
+		if (nextRefreshedScheduled === true) {
 			debug("requestRefreshOutline - scheduled");
 			return;
 		}
 
 		setTimeout(() => {
 			showOutline(page);
-			nextRrefshedScheduled = false;
+			nextRefreshedScheduled = false;
 			debug("requestRefreshOutline - **refreshed**");
 		}, 500);
-		nextRrefshedScheduled = true;
+		nextRefreshedScheduled = true;
 	}
 
 	//==================
@@ -438,7 +436,7 @@
 	// detect reply visibility change
 	//
 
-	function isElmentInViewport(element, viewPortDom) {
+	function isElementInViewport(element, viewPortDom) {
 		const rect = element.getBoundingClientRect();
 		const viewPortRect = viewPortDom.getBoundingClientRect();
 		return rect.top >= viewPortRect.top && rect.bottom <= viewPortRect.bottom;
@@ -500,7 +498,7 @@
 					this.observedItems.push(item);
 				});
 			},
-			disconnet: function () {
+			disconnect: function () {
 				if (this.observer) {
 					this.observer.disconnect();
 				}
@@ -585,7 +583,7 @@
 						.querySelectorAll("h1, h2, h3, h4, h5, h6");
 
 					if (observer.observedItems.length !== current_item_list.length) {
-                        observer.disconnet();
+						observer.disconnect();
 						observer.observe(...current_item_list);
 					}
 
